@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Reporte de Script</title>
+<meta name="theme-color" content="#2b4fd8">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)} body{margin:0} [hidden]{display:none!important} img{max-width:100%}
+/* Layout: barra superior, tira de días de rodaje, pestañas, y una columna de trabajo. La pestaña Reporte muestra una hoja blanca idéntica al PDF. */
+:root{
+  --bg:#f2f3f6; --surface:#ffffff; --surface2:#e8ebf0; --ink:#12151c; --muted:#596171; --line:#d3d8e0;
+  --accent:#2b4fd8; --accent-ink:#ffffff; --accent-soft:#e3e9fc; --ok:#17704a; --warn:#a15f00; --bad:#b3261e; --focus:rgba(43,79,216,.35);
+  --paper:#ffffff; --paper-ink:#14171f; --paper-muted:#5d6574; --paper-line:#c9ced8; --paper-head:#1c202a; --paper-head-ink:#ffffff; --paper-accent:#2b4fd8;
+  --f-head:'Space Grotesk',system-ui,sans-serif; --f-body:'Inter',system-ui,sans-serif; --f-mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1117; --surface:#161a22; --surface2:#1f2530; --ink:#e8ebf1; --muted:#9ba4b3; --line:#2b3240;
+  --accent:#86a0ff; --accent-ink:#0b1020; --accent-soft:#1d2644; --ok:#4cc38a; --warn:#e3a43c; --bad:#ff8f86; --focus:rgba(134,160,255,.4); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1117; --surface:#161a22; --surface2:#1f2530; --ink:#e8ebf1; --muted:#9ba4b3; --line:#2b3240;
+  --accent:#86a0ff; --accent-ink:#0b1020; --accent-soft:#1d2644; --ok:#4cc38a; --warn:#e3a43c; --bad:#ff8f86; --focus:rgba(134,160,255,.4); color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45;
+  padding-block:0 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1080px;margin:0 auto}
+h1,h2,h3{font-family:var(--f-head);margin:0;text-wrap:balance}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* barra superior */
+.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-block:16px 12px}
+.brand{font-family:var(--f-head);font-weight:700;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.ptitle{font-family:var(--f-head);font-weight:500;font-size:18px;min-width:0;overflow-wrap:anywhere;flex:1 1 200px}
+.status{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;white-space:nowrap}
+.status i{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block}
+.status.saved i{background:var(--ok)} .status.saving i{background:var(--warn)} .status.error i{background:var(--bad)}
+.demo{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--accent-soft);border:1px solid var(--accent);border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:14px}
+
+/* días */
+.days{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;scrollbar-width:thin}
+.chip{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 12px;text-align:left;line-height:1.25}
+.chip b{display:block;font-family:var(--f-head);font-size:14px}
+.chip span{font-size:12px;color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.chip[aria-pressed="true"] span{color:inherit;opacity:.85}
+.chip.add{border-style:dashed;color:var(--accent);display:flex;align-items:center;font-weight:600}
+
+/* pestañas */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-top:10px;overflow-x:auto}
+.tab{background:none;border:0;border-bottom:3px solid transparent;padding:10px 14px;font-weight:500;color:var(--muted);white-space:nowrap}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tab.right{margin-left:auto}
+main{padding-top:18px;display:flex;flex-direction:column;gap:16px}
+
+/* formularios */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.card h2{font-size:15px;letter-spacing:.02em}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+.grid .span2{grid-column:span 2}
+@media (max-width:420px){.grid .span2{grid-column:auto}}
+label.cell{display:block;min-width:0}
+.cap{display:block;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 9px;width:100%;min-width:0}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--focus);border-color:var(--accent)}
+textarea{min-height:84px;resize:vertical}
+input[type=time],input[type=date]{font-family:var(--f-mono);font-size:14px}
+.mono{font-family:var(--f-mono)}
+.hint{font-size:13px;color:var(--muted);margin:0}
+
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:9px 14px;font-weight:500}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.danger{color:var(--bad);border-color:var(--bad)}
+.btn.sm{padding:5px 10px;font-size:13px}
+.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+/* resumen */
+.strip{display:flex;flex-wrap:wrap;gap:8px 24px}
+.stat{min-width:0}
+.stat .cap{margin:0}
+.stat b{font-family:var(--f-mono);font-weight:500;font-size:20px}
+.stat small{color:var(--muted);font-size:12px;margin-left:4px}
+
+/* filas de escenas y tomas: tarjeta en teléfono, fila en escritorio */
+.list{display:flex;flex-direction:column;gap:8px}
+.head{display:none}
+.row{display:grid;gap:8px;grid-template-columns:repeat(2,minmax(0,1fr));align-items:end;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px}
+.row .wide{grid-column:1/-1}
+.row .cell{min-width:0}
+.x{border:1px solid var(--line);background:none;border-radius:6px;height:36px;color:var(--muted);padding:0 10px}
+.x:hover{color:var(--bad);border-color:var(--bad)}
+.x .xi{display:none}
+.ring{border-radius:50%!important;border:2px solid var(--accent)!important;text-align:center;font-weight:600}
+input.toma{font-family:var(--f-mono)}
+@media (min-width:860px){
+  .head{display:grid;gap:8px;padding:0 0 4px;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+  .row{border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;padding:5px 0;align-items:center}
+  .cap.hd{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .row .wide{grid-column:auto}
+  .x .xt{display:none} .x .xi{display:inline} .x{width:32px;padding:0}
+  .g-t{grid-template-columns:52px 88px 88px 58px 64px 58px minmax(0,1fr) minmax(0,1fr) 112px 32px}
+  .g-e{grid-template-columns:64px minmax(0,1.3fr) 82px 82px 118px 72px minmax(0,1fr) 32px}
+  .ring{width:100%}
+}
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:10px;padding:32px 20px;text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center}
+.empty h2{font-size:20px}
+.empty p{max-width:46ch;margin:0;color:var(--muted)}
+
+/* hoja del reporte */
+.sheetbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:8px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.paper{background:var(--paper);color:var(--paper-ink);border:1px solid var(--paper-line);border-radius:4px;padding:28px 30px;width:100%;max-width:860px;margin:0 auto;font-size:12.5px;line-height:1.45;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.paper h1{font-size:24px;line-height:1.15;color:var(--paper-ink)}
+.paper .ph{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;border-bottom:2px solid var(--paper-ink);padding-bottom:12px;margin-bottom:12px}
+.paper .kick{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--paper-accent);font-weight:600;margin-bottom:4px}
+.paper .dnum{text-align:right}
+.paper .dnum b{font-family:var(--f-head);font-size:22px}
+.paper .dnum span{color:var(--paper-muted)}
+.paper .dnum div{color:var(--paper-muted);font-size:12px}
+.paper .info{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:4px 24px;margin:0 0 6px}
+.paper .info div{display:flex;gap:8px}
+.paper dt{color:var(--paper-muted);min-width:78px;font-weight:600}
+.paper dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.paper h3{font-family:var(--f-body);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--paper-accent);border-bottom:1px solid var(--paper-line);padding-bottom:3px;margin:16px 0 6px}
+.tw{overflow-x:auto}
+.paper table{border-collapse:collapse;width:100%}
+.paper th{background:var(--paper-head);color:var(--paper-head-ink);font-size:10.5px;text-align:left;padding:4px 6px;border:1px solid var(--paper-head);white-space:nowrap}
+.paper td{border:1px solid var(--paper-line);padding:4px 6px;vertical-align:top}
+.paper td.n,.paper th.n{text-align:center;font-family:var(--f-mono);white-space:nowrap}
+.paper tfoot td{font-weight:600;background:#eef0f4}
+.paper tr.good td{font-weight:600}
+.paper .circ{display:inline-block;min-width:22px;border:1.5px solid var(--paper-ink);border-radius:50%;text-align:center;line-height:18px}
+.paper p.txt{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.paper .sign{margin-top:26px;display:flex;gap:40px;flex-wrap:wrap;color:var(--paper-muted)}
+.paper .sign div{border-top:1px solid var(--paper-ink);padding-top:4px;min-width:200px}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font-size:14px;z-index:20;max-width:90vw}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <span class="brand">Script</span>
+    <div class="ptitle" id="ptitle"></div>
+    <div class="status" id="status" role="status"><i></i><span></span></div>
+  </div>
+  <div id="demo"></div>
+  <div id="nag"></div>
+  <div class="days" id="days" role="group" aria-label="Días de rodaje"></div>
+  <div class="tabs" id="tabs" role="tablist"></div>
+  <main id="main"></main>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+<input type="file" id="file-import" accept="application/json,.json" class="sr" tabindex="-1">
+
+<script src="pdf-lib.min.js"></script>
+<script>
+(function(){
+"use strict";
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4);
+const todayISO=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
+
+const ESTADOS_TOMA=['Buena','Aceptable','NG','Falsa partida','Incompleta'];
+const ESTADOS_ESC=['Completa','Parcial','No filmada'];
+const TABS=[['dia','Día'],['escenas','Escenas'],['tomas','Tomas'],['reporte','Reporte'],['proyecto','Proyecto']];
+
+/* ---------- estado ---------- */
+const emptyProject=()=>({titulo:'',productora:'',director:'',productor:'',script:'',dop:'',totalPaginas:'',totalDias:'',updatedAt:0});
+const state={project:emptyProject(),days:[],current:null,tab:'dia',demo:false,confirmDel:false};
+let realBackup=null, db=null, dlCap=null;
+const dirty=new Set(); let flushTimer=null, flushing=false;
+
+const curDay=()=>state.days.find(d=>d.id===state.current)||null;
+const sortedDays=()=>[...state.days].sort((a,b)=>(+a.num||0)-(+b.num||0)||(a.fecha||'').localeCompare(b.fecha||''));
+
+function newDay(prev){
+  const nums=state.days.map(d=>+d.num||0);
+  const d={id:'d'+uid(),num:String((nums.length?Math.max(...nums):0)+1),fecha:todayISO(),llamado:'',primerPlano:'',almuerzoIni:'',almuerzoFin:'',ultimoPlano:'',wrap:'',
+    locacion:prev?prev.locacion:'',clima:'',escenas:[],tomas:[],continuidad:'',pendientes:'',incidencias:'',updatedAt:Date.now()};
+  if(prev){ // arrastra lo que quedó sin terminar
+    prev.escenas.filter(e=>e.estado!=='Completa').forEach(e=>d.escenas.push({id:uid(),num:e.num,desc:e.desc,pagTotal:e.pagTotal,pagHoy:'',estado:'No filmada',tiempo:e.tiempo,notas:e.notas}));
+  }
+  return d;
+}
+
+/* ---------- utilidades de formato ---------- */
+function parsePages(s){ s=String(s||'').trim().replace(',','.'); if(!s) return 0;
+  let m=s.match(/^(\d+)\s+(\d+)\s*\/\s*8$/); if(m) return +m[1]*8+ +m[2];
+  m=s.match(/^(\d+)\s*\/\s*8$/); if(m) return +m[1];
+  if(/^\d+(\.\d+)?$/.test(s)) return Math.round(parseFloat(s)*8);
+  return 0; }
+function fmtPages(e){ if(!e) return '0'; const w=Math.floor(e/8), r=e%8; return w&&r?`${w} ${r}/8`:(w?`${w}`:`${r}/8`); }
+function parseDur(s){ s=String(s||'').trim(); if(!s) return 0; let m=s.match(/^(\d+):(\d{1,2})$/); if(m) return +m[1]*60+ +m[2]; if(/^\d+$/.test(s)) return +s; return 0; }
+function fmtDur(sec){ if(!sec) return '0:00'; return `${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')}`; }
+const tmin=t=>/^\d\d:\d\d$/.test(t||'')?(+t.slice(0,2)*60+ +t.slice(3)):null;
+function span(a,b){ const x=tmin(a),y=tmin(b); if(x==null||y==null) return null; let d=y-x; if(d<0) d+=1440; return d; }
+const fmtHM=m=>m==null?'—':`${Math.floor(m/60)} h ${String(m%60).padStart(2,'0')} min`;
+function fechaLarga(iso){ if(!iso) return ''; const d=new Date(iso+'T12:00:00'); if(isNaN(d)) return iso;
+  const s=d.toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); return s.charAt(0).toUpperCase()+s.slice(1); }
+function fechaCorta(iso){ if(!iso) return ''; const d=new Date(iso+'T12:00:00'); if(isNaN(d)) return iso; return d.toLocaleDateString('es-CO',{day:'numeric',month:'short'}); }
+const norm=s=>String(s||'').trim().toLowerCase();
+const pad2=n=>String(n).padStart(2,'0');
+
+/* ---------- modelo del reporte (lo usan la vista previa y el PDF) ---------- */
+function buildReport(d){
+  const p=state.project, rows=[], byKey=new Map();
+  d.escenas.forEach(e=>{ const row={num:e.num,desc:e.desc,pagTotal:parsePages(e.pagTotal),pagHoy:parsePages(e.pagHoy),estado:e.estado,tiempo:parseDur(e.tiempo),notas:e.notas,setups:0,tomas:0,buenas:0,_pl:new Set()};
+    rows.push(row); const k=norm(e.num); if(k&&!byKey.has(k)) byKey.set(k,row); });
+  d.tomas.forEach(t=>{ const k=norm(t.escena); let row=byKey.get(k);
+    if(!row){ row={num:t.escena||'?',desc:'',pagTotal:0,pagHoy:0,estado:'',tiempo:0,notas:'',setups:0,tomas:0,buenas:0,_pl:new Set()}; rows.push(row); byKey.set(k,row); }
+    row.tomas++; if(t.estado==='Buena') row.buenas++; if(norm(t.plano)) row._pl.add(norm(t.plano)); });
+  rows.forEach(r=>{r.setups=r._pl.size;});
+  const sum=f=>rows.reduce((a,r)=>a+f(r),0);
+  const tot={pagProg:sum(r=>r.pagTotal),pagHoy:sum(r=>r.pagHoy),setups:sum(r=>r.setups),tomas:d.tomas.length,buenas:d.tomas.filter(t=>t.estado==='Buena').length,
+    pantalla:sum(r=>r.tiempo),grabado:d.tomas.reduce((a,t)=>a+parseDur(t.dur),0)};
+  const upto=sortedDays().filter(x=>(+x.num||0)<=(+d.num||0));
+  const acumPag=upto.reduce((a,x)=>a+x.escenas.reduce((b,e)=>b+parsePages(e.pagHoy),0),0);
+  const totPag=parsePages(p.totalPaginas);
+  const total=span(d.llamado,d.wrap||d.ultimoPlano), lunch=span(d.almuerzoIni,d.almuerzoFin);
+  return {p,d,rows,tot,fechaLarga:fechaLarga(d.fecha),
+    acum:{pag:acumPag,pct:totPag?Math.round(acumPag/totPag*100):null,dias:upto.length},
+    hrs:{total,efectivas:total==null?null:total-(lunch||0)}};
+}
+
+/* ---------- guardado en el teléfono ---------- */
+const LS='reporte-script-v1', LSB='reporte-script-ultima-copia';
+function lsSave(){ try{ localStorage.setItem(LS,JSON.stringify({project:state.project,days:state.days})); return true; }catch(e){ return false; } }
+function lsLoad(){ try{ const r=JSON.parse(localStorage.getItem(LS)||'null'); if(r&&Array.isArray(r.days)){ state.project={...emptyProject(),...r.project}; state.days=r.days.map(fixDay); } }catch(e){} }
+function fixDay(d){ return {llamado:'',primerPlano:'',almuerzoIni:'',almuerzoFin:'',ultimoPlano:'',locacion:'',clima:'',continuidad:'',pendientes:'',incidencias:'',wrap:'',...d,escenas:d.escenas||[],tomas:d.tomas||[]}; }
+function setStatus(k){ const el=$('#status'); el.className='status '+(k==='local'?'saved':k);
+  const t={local:'Guardado en el teléfono',error:'No se pudo guardar. Descarga una copia ya.',demo:'Ejemplo: no se guarda'}[k]; el.lastElementChild.textContent=t; }
+function queue(){ if(state.demo) return; setStatus(lsSave()?'local':'error'); renderNag(); }
+const touchDay=()=>{ const d=curDay(); if(!d) return; d.updatedAt=Date.now(); queue(); };
+const touchProject=()=>{ state.project.updatedAt=Date.now(); queue(); };
+function lastBackup(){ try{ return +localStorage.getItem(LSB)||0; }catch(e){ return 0; } }
+const lastChange=()=>Math.max(state.project.updatedAt||0,0,...state.days.map(d=>d.updatedAt||0));
+let nagShown=null;
+function renderNag(){
+  const show=!state.demo&&state.days.length>0&&lastChange()>lastBackup()&&(Date.now()-lastBackup()>10*3600e3);
+  if(show===nagShown) return; nagShown=show;
+  const lb=lastBackup();
+  $('#nag').innerHTML=show?`<div class="demo"><span><b>Copia de seguridad pendiente.</b> ${lb?'La última es del '+esc(new Date(lb).toLocaleDateString('es-CO',{day:'numeric',month:'long'}))+'.':'Aún no has descargado ninguna.'} Descárgala al cerrar el día y guárdala en Drive o envíatela por correo.</span><button class="btn sm primary" data-act="export">Descargar copia</button></div>`:'';
+}
+async function initApp(){
+  setStatus('local'); renderNag();
+  try{ if(navigator.storage&&navigator.storage.persist) await navigator.storage.persist(); }catch(e){}
+  if('serviceWorker' in navigator&&location.protocol.startsWith('http')){ try{ await navigator.serviceWorker.register('sw.js'); }catch(e){} }
+}
+const inMain=()=>{ const a=document.activeElement; return !!(a&&$('#main').contains(a)&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)); };
+const lastDayId=()=>{ const s=sortedDays(); return s.length?s[s.length-1].id:null; };
+
+/* ---------- campos ---------- */
+function F(label,sc,k,val,o={}){ const {type='text',id='',ph='',cls='',attrs='',cap=''}=o;
+  return `<label class="cell ${cls}"><span class="cap ${cap}">${label}</span><input id="${sc}-${k}-${id}" type="${type}" data-sc="${sc}" data-k="${k}" ${id?`data-id="${id}"`:''} value="${esc(val)}" placeholder="${esc(ph)}" autocomplete="off" ${attrs}></label>`; }
+function S(label,sc,k,val,opts,o={}){ const {id='',cls='',cap=''}=o;
+  return `<label class="cell ${cls}"><span class="cap ${cap}">${label}</span><select id="${sc}-${k}-${id}" data-sc="${sc}" data-k="${k}" ${id?`data-id="${id}"`:''}><option value="">—</option>${opts.map(x=>`<option${x===val?' selected':''}>${esc(x)}</option>`).join('')}</select></label>`; }
+function A(label,sc,k,val,ph){ return `<label class="cell"><span class="cap">${label}</span><textarea id="${sc}-${k}-" data-sc="${sc}" data-k="${k}" placeholder="${esc(ph||'')}">${esc(val)}</textarea></label>`; }
+
+/* ---------- render ---------- */
+function renderTop(){
+  $('#ptitle').textContent=state.project.titulo||'Proyecto sin título';
+  $('#demo').innerHTML=state.demo?`<div class="demo"><span><b>Datos de ejemplo.</b> Puedes probar todo, pero nada se guarda.</span><button class="btn sm" data-act="exit-demo">Salir del ejemplo</button></div>`:'';
+  if(state.demo) setStatus('demo');
+}
+function renderDays(){
+  const days=sortedDays();
+  $('#days').innerHTML=days.map(d=>`<button class="chip" data-act="day" data-id="${d.id}" aria-pressed="${d.id===state.current}"><b>Día ${esc(d.num)}</b><span>${esc(fechaCorta(d.fecha))}</span></button>`).join('')+`<button class="chip add" data-act="new-day">+ Nuevo día</button>`;
+}
+function renderTabs(){
+  $('#tabs').innerHTML=TABS.map(([k,l])=>`<button class="tab ${k==='proyecto'?'right':''}" role="tab" data-act="tab" data-id="${k}" aria-selected="${state.tab===k}">${l}</button>`).join('');
+}
+function renderMain(){
+  const m=$('#main'), d=curDay();
+  if(state.tab==='proyecto'){ m.innerHTML=viewProyecto(); return; }
+  if(!d){ m.innerHTML=`<div class="empty"><h2>Aún no hay días de rodaje</h2><p>Crea el primer día y empieza a registrar escenas y tomas. Si ya llevas días hechos a mano, créalos también: puedes ponerles el número y la fecha que correspondan.</p>
+    <div class="bar"><button class="btn primary" data-act="new-day">Crear el primer día</button><button class="btn" data-act="demo">Ver con datos de ejemplo</button></div></div>`; return; }
+  m.innerHTML=({dia:viewDia,escenas:viewEscenas,tomas:viewTomas,reporte:viewReporte})[state.tab](d);
+}
+const renderAll=()=>{ renderTop(); renderDays(); renderTabs(); renderMain(); };
+
+function viewDia(d){
+  return `<section class="card"><h2>Jornada</h2><div class="grid">
+    ${F('Día n.º','d','num',d.num,{attrs:'inputmode="numeric"'})}
+    ${F('Fecha','d','fecha',d.fecha,{type:'date'})}
+    ${F('Locación / set','d','locacion',d.locacion,{cls:'span2',ph:'Ej.: Casa de la abuela, Medellín'})}
+  </div></section>
+  <section class="card"><h2>Notas del día</h2>
+    ${A('Continuidad y notas para edición','d','continuidad',d.continuidad,'Raccords, vestuario, utilería, dirección de miradas, errores a vigilar…')}
+    ${A('Planos pendientes','d','pendientes',d.pendientes,'Lo que quedó sin filmar y hay que recuperar')}
+    ${A('Incidencias','d','incidencias',d.incidencias,'Retrasos, problemas técnicos, cambios de plan')}
+  </section>
+  <div class="bar"><button class="btn danger sm" data-act="del-day">${state.confirmDel?'Confirmar: borrar este día':'Borrar este día'}</button>${state.confirmDel?'<button class="btn sm" data-act="cancel-del">Cancelar</button>':''}</div>`;
+}
+const hrsText=r=>r.hrs.total==null?'Con el llamado y el wrap se calcula la duración de la jornada.':`Jornada: ${fmtHM(r.hrs.total)} · Horas de trabajo sin almuerzo: ${fmtHM(r.hrs.efectivas)}`;
+
+function stripEsc(d){ const r=buildReport(d);
+  return `<div class="stat"><span class="cap">Págs. programadas</span><b>${fmtPages(r.tot.pagProg)}</b></div>
+  <div class="stat"><span class="cap">Págs. filmadas hoy</span><b>${fmtPages(r.tot.pagHoy)}</b></div>
+  <div class="stat"><span class="cap">Acumulado</span><b>${fmtPages(r.acum.pag)}</b>${r.acum.pct!=null?`<small>${r.acum.pct}% del guion</small>`:''}</div>`; }
+function viewEscenas(d){
+  return `<section class="card"><div class="strip" id="strip">${stripEsc(d)}</div><p class="hint">Páginas en octavos: escribe “2 3/8”, “5/8” o “1.5”. Al marcar una escena como Completa, las páginas de hoy se llenan solas.</p></section>
+  <div class="bar"><button class="btn primary" data-act="add-esc">+ Escena</button></div>
+  <div class="list">
+    ${d.escenas.length?`<div class="head g-e"><span>Esc.</span><span>Descripción</span><span>Págs.</span><span>Hoy</span><span>Estado</span><span>Min.</span><span>Notas</span><span></span></div>`:''}
+    ${d.escenas.map(e=>`<div class="row g-e" data-row="${e.id}">
+      ${F('Esc.','e','num',e.num,{id:e.id,cap:'hd',attrs:'class="mono"'})}
+      ${F('Descripción','e','desc',e.desc,{id:e.id,cap:'hd',cls:'wide',ph:'INT. COCINA - DÍA'})}
+      ${F('Págs. guion','e','pagTotal',e.pagTotal,{id:e.id,cap:'hd',ph:'1 2/8',attrs:'class="mono"'})}
+      ${F('Págs. hoy','e','pagHoy',e.pagHoy,{id:e.id,cap:'hd',ph:'1 2/8',attrs:'class="mono"'})}
+      ${S('Estado','e','estado',e.estado,ESTADOS_ESC,{id:e.id,cap:'hd'})}
+      ${F('Min. pantalla','e','tiempo',e.tiempo,{id:e.id,cap:'hd',ph:'mm:ss',attrs:'class="mono"'})}
+      ${F('Notas','e','notas',e.notas,{id:e.id,cap:'hd',cls:'wide'})}
+      <button class="x wide" data-act="del-esc" data-id="${e.id}" aria-label="Quitar escena"><span class="xt">Quitar escena</span><span class="xi">×</span></button>
+    </div>`).join('')}
+  </div>
+  ${d.escenas.length?'':`<div class="empty"><p>Agrega las escenas que se filman hoy. Después las verás en el menú de la pestaña Tomas.</p></div>`}`;
+}
+
+function stripTomas(d){ const r=buildReport(d);
+  return `<div class="stat"><span class="cap">Tomas</span><b>${r.tot.tomas}</b></div>
+  <div class="stat"><span class="cap">Buenas</span><b>${r.tot.buenas}</b></div>
+  <div class="stat"><span class="cap">Planos</span><b>${r.tot.setups}</b></div>`; }
+const dlEsc=d=>`<datalist id="dl-esc">${d.escenas.filter(e=>e.num).map(e=>`<option value="${esc(e.num)}">${esc(e.desc)}</option>`).join('')}</datalist>`;
+function viewTomas(d){
+  return `<section class="card"><div class="strip" id="strip">${stripTomas(d)}</div></section>
+  <div class="bar"><button class="btn primary" data-act="add-toma">+ Nueva toma</button><span class="hint">Copia cámara, escena y plano de la toma anterior, suma uno a la toma y avanza el número de clip y de sonido.</span></div>
+  ${dlEsc(d)}
+  <div class="list">
+    ${d.tomas.length?`<div class="head g-t"><span>Cám.</span><span>Clip</span><span>Sonido</span><span>Esc.</span><span>Plano</span><span>Toma</span><span>Acción</span><span>Observaciones</span><span>Marca</span><span></span></div>`:''}
+    ${d.tomas.map(t=>`<div class="row g-t" data-row="${t.id}">
+      ${F('Cámara','t','camara',t.camara,{id:t.id,cap:'hd',attrs:'class="mono"',ph:'A'})}
+      ${F('Clip','t','clip',t.clip,{id:t.id,cap:'hd',attrs:'class="mono"',ph:'A001'})}
+      ${F('Sonido','t','sonido',t.sonido,{id:t.id,cap:'hd',attrs:'class="mono"',ph:'T001'})}
+      <label class="cell"><span class="cap hd">Escena</span><input id="t-escena-${t.id}" class="mono" list="dl-esc" data-sc="t" data-k="escena" data-id="${t.id}" value="${esc(t.escena)}" autocomplete="off"></label>
+      ${F('Plano','t','plano',t.plano,{id:t.id,cap:'hd',attrs:'class="mono"',ph:'2A'})}
+      ${F('Toma','t','toma',t.toma,{id:t.id,cap:'hd',attrs:`class="toma${t.estado==='Buena'?' ring':''}" inputmode="numeric"`})}
+      ${F('Acción','t','accion',t.accion,{id:t.id,cap:'hd',cls:'wide',ph:'Qué pasa en la toma'})}
+      ${F('Observaciones','t','nota',t.nota,{id:t.id,cap:'hd',cls:'wide'})}
+      ${S('Marca','t','estado',t.estado,ESTADOS_TOMA,{id:t.id,cap:'hd'})}
+      <button class="x wide" data-act="del-toma" data-id="${t.id}" aria-label="Quitar toma"><span class="xt">Quitar toma</span><span class="xi">×</span></button>
+    </div>`).join('')}
+  </div>
+  ${d.tomas.length?`<div class="bar"><button class="btn primary" data-act="add-toma">+ Nueva toma</button></div>`:`<div class="empty"><p>Cada toma que ruedes va aquí en orden de rodaje. Marca “Buena” para encerrarla en un círculo, como en el papel.</p></div>`}`;
+}
+
+function viewReporte(d){
+  return `<div class="sheetbar"><button class="btn primary" data-act="pdf">Descargar PDF</button>${canShareFiles()?'<button class="btn" data-act="pdf-share">Compartir PDF</button>':''}<span class="hint">Vista previa del documento que se entrega.</span></div>
+  <div id="paper-wrap">${reportHTML(buildReport(d))}</div>`;
+}
+function reportHTML(r){
+  const {p,d}=r, v=x=>esc(x)||'—';
+  const rowE=r.rows.map(e=>`<tr><td class="n">${esc(e.num)}</td><td>${esc(e.desc)}</td><td class="n">${fmtPages(e.pagTotal)}</td><td class="n">${fmtPages(e.pagHoy)}</td><td>${esc(e.estado)}</td><td class="n">${e.setups}</td><td class="n">${e.tomas}</td><td class="n">${e.buenas}</td><td class="n">${e.tiempo?fmtDur(e.tiempo):''}</td><td>${esc(e.notas)}</td></tr>`).join('');
+  const rowT=d.tomas.map(t=>`<tr class="${t.estado==='Buena'?'good':''}"><td class="n">${esc(t.camara)}</td><td class="n">${esc(t.clip)}</td><td class="n">${esc(t.sonido)}</td><td class="n">${esc(t.escena)}</td><td class="n">${esc(t.plano)}</td><td class="n">${t.estado==='Buena'?`<span class="circ">${esc(t.toma)}</span>`:esc(t.toma)}</td><td>${esc(t.accion)}</td><td>${esc(t.nota)}</td></tr>`).join('');
+  const almu=d.almuerzoIni||d.almuerzoFin?`${d.almuerzoIni||'—'} – ${d.almuerzoFin||'—'}`:'—';
+  return `<article class="paper" id="paper">
+  <header class="ph"><div><div class="kick">Reporte diario de script</div><h1>${esc(p.titulo||'Proyecto sin título')}</h1>${p.productora?`<div>${esc(p.productora)}</div>`:''}</div>
+    <div class="dnum"><b>Día ${esc(d.num)}</b>${p.totalDias?` <span>de ${esc(p.totalDias)}</span>`:''}<div>${esc(r.fechaLarga)}</div></div></header>
+  <dl class="info"><div><dt>Director</dt><dd>${v(p.director)}</dd></div><div><dt>Productor</dt><dd>${v(p.productor)}</dd></div><div><dt>Script</dt><dd>${v(p.script)}</dd></div>
+    <div><dt>Dir. foto</dt><dd>${v(p.dop)}</dd></div><div><dt>Locación</dt><dd>${v(d.locacion)}</dd></div></dl>
+  <h3>Escenas</h3><div class="tw"><table><thead><tr><th class="n">Esc.</th><th>Descripción</th><th class="n">Págs.</th><th class="n">Hoy</th><th>Estado</th><th class="n">Planos</th><th class="n">Tomas</th><th class="n">Buenas</th><th class="n">Min.</th><th>Notas</th></tr></thead>
+    <tbody>${rowE||'<tr><td colspan="10">Sin escenas registradas</td></tr>'}</tbody>
+    <tfoot><tr><td colspan="2">Totales del día</td><td class="n">${fmtPages(r.tot.pagProg)}</td><td class="n">${fmtPages(r.tot.pagHoy)}</td><td></td><td class="n">${r.tot.setups}</td><td class="n">${r.tot.tomas}</td><td class="n">${r.tot.buenas}</td><td class="n">${fmtDur(r.tot.pantalla)}</td><td></td></tr></tfoot></table></div>
+  <p style="margin:8px 0 0">Acumulado hasta hoy: <b>${fmtPages(r.acum.pag)}</b> págs.${p.totalPaginas?` de ${esc(p.totalPaginas)}`:''}${r.acum.pct!=null?` (${r.acum.pct}%)`:''} · ${r.acum.dias} ${r.acum.dias===1?'día filmado':'días filmados'}</p>
+  <h3>Registro de tomas</h3><div class="tw"><table><thead><tr><th class="n">Cám.</th><th class="n">Clip</th><th class="n">Sonido</th><th class="n">Esc.</th><th class="n">Plano</th><th class="n">Toma</th><th>Acción</th><th>Observaciones</th></tr></thead>
+    <tbody>${rowT||'<tr><td colspan="8">Sin tomas registradas</td></tr>'}</tbody></table></div>
+  <h3>Continuidad y notas para edición</h3><p class="txt">${v(d.continuidad)}</p>
+  <h3>Planos pendientes</h3><p class="txt">${v(d.pendientes)}</p>
+  <h3>Incidencias</h3><p class="txt">${v(d.incidencias)}</p>
+  <div class="sign"><div>Script${p.script?`: ${esc(p.script)}`:''}</div></div></article>`;
+}
+
+function viewProyecto(){
+  const p=state.project;
+  return `<section class="card"><h2>Datos de la producción</h2><p class="hint">Se imprimen en el encabezado de cada reporte.</p><div class="grid">
+    ${F('Título','p','titulo',p.titulo,{cls:'span2'})}${F('Productora','p','productora',p.productora,{cls:'span2'})}
+    ${F('Director/a','p','director',p.director)}${F('Productor/a','p','productor',p.productor)}
+    ${F('Script','p','script',p.script)}${F('Dirección de fotografía','p','dop',p.dop)}
+    ${F('Páginas totales del guion','p','totalPaginas',p.totalPaginas,{ph:'90'})}${F('Días de rodaje planeados','p','totalDias',p.totalDias,{attrs:'inputmode="numeric"'})}
+  </div></section>
+  <section class="card"><h2>Copia de seguridad</h2><p class="hint">Todo se guarda solo en este teléfono. Si lo pierdes o se borran los datos del navegador, la copia es lo único que queda: descárgala al cerrar cada día y guárdala en Drive o envíatela por correo. También sirve para pasar los datos a otro teléfono.</p>
+    <div class="bar"><button class="btn" data-act="export">Descargar copia (.json)</button><button class="btn" data-act="import">Cargar una copia</button>${lastBackup()?`<span class="hint">Última copia: ${esc(new Date(lastBackup()).toLocaleString("es-CO",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}))}</span>`:""}<button class="btn" data-act="demo">Ver datos de ejemplo</button></div></section>`;
+}
+
+/* ---------- eventos ---------- */
+function rowOf(sc,id){ const d=curDay(); if(!d) return null; return (sc==='e'?d.escenas:d.tomas).find(x=>x.id===id); }
+document.addEventListener('input',ev=>{
+  const el=ev.target, sc=el.dataset&&el.dataset.sc; if(!sc) return;
+  const k=el.dataset.k, val=el.value;
+  if(sc==='p'){ state.project[k]=val; touchProject(); if(k==='titulo') renderTop(); return; }
+  const d=curDay(); if(!d) return;
+  if(sc==='d'){ d[k]=val; if(k==='num'||k==='fecha') renderDays(); }
+  else { const r=rowOf(sc,el.dataset.id); if(!r) return; r[k]=val;
+    if(sc==='t'&&k==='estado'){ el.closest('.row').querySelector('[data-k=toma]').classList.toggle('ring',val==='Buena'); }
+    if(sc==='e'&&k==='estado'&&val==='Completa'&&!r.pagHoy&&r.pagTotal){ r.pagHoy=r.pagTotal; el.closest('.row').querySelector('[data-k=pagHoy]').value=r.pagTotal; }
+    if(sc==='e'&&k==='num'){ const dl=$('#dl-esc'); if(dl) dl.outerHTML=dlEsc(d); } }
+  touchDay(); derived(d);
+});
+document.addEventListener('change',ev=>{
+  const el=ev.target, sc=el.dataset&&el.dataset.sc; if(sc!=='e'&&sc!=='t') return;
+  const r=rowOf(sc,el.dataset.id); if(!r) return; const k=el.dataset.k;
+  if(k==='pagTotal'||k==='pagHoy'){ const e=parsePages(el.value); if(e){ el.value=fmtPages(e); r[k]=el.value; } else if(el.value.trim()){ toast('No entendí las páginas. Usa “2 3/8”, “5/8” o “1.5”.'); } }
+  if(k==='dur'||k==='tiempo'){ const s=parseDur(el.value); if(s){ el.value=fmtDur(s); r[k]=el.value; } else if(el.value.trim()){ toast('Escribe la duración como mm:ss, por ejemplo 1:25.'); } }
+  touchDay(); derived(curDay());
+});
+function derived(d){
+  const s=$('#strip'); if(s) s.innerHTML=state.tab==='escenas'?stripEsc(d):stripTomas(d);
+  const h=$('#hrs'); if(h) h.textContent=hrsText(buildReport(d));
+}
+document.addEventListener('keydown',ev=>{
+  if(ev.key==='Enter'&&ev.target.dataset&&ev.target.dataset.sc==='t'&&ev.target.dataset.k==='nota'){
+    const d=curDay(); if(d&&d.tomas[d.tomas.length-1]&&d.tomas[d.tomas.length-1].id===ev.target.dataset.id){ ev.preventDefault(); addToma(); } }
+});
+document.addEventListener('click',ev=>{
+  const b=ev.target.closest('[data-act]'); if(!b) return; const a=b.dataset.act, id=b.dataset.id, d=curDay();
+  if(a==='tab'){ state.tab=id; state.confirmDel=false; renderTabs(); renderMain(); }
+  else if(a==='day'){ state.current=id; state.confirmDel=false; renderDays(); renderMain(); }
+  else if(a==='new-day'){ const nd=newDay(d?sortedDays()[sortedDays().length-1]:null); state.days.push(nd); state.current=nd.id; if(state.tab==='proyecto') state.tab='dia'; queue(nd.id); renderAll(); toast(nd.escenas.length?`Día ${nd.num} creado con ${nd.escenas.length} escena(s) pendiente(s) del día anterior.`:`Día ${nd.num} creado.`); }
+  else if(a==='add-esc'){ d.escenas.push({id:uid(),num:'',desc:'',pagTotal:'',pagHoy:'',estado:'',tiempo:'',notas:''}); touchDay(); renderMain(); const rows=document.querySelectorAll('.row'); const l=rows[rows.length-1]; if(l) l.querySelector('input').focus(); }
+  else if(a==='del-esc'){ d.escenas=d.escenas.filter(x=>x.id!==id); touchDay(); renderMain(); }
+  else if(a==='add-toma') addToma();
+  else if(a==='del-toma'){ d.tomas=d.tomas.filter(x=>x.id!==id); touchDay(); renderMain(); }
+  else if(a==='del-day'){ if(!state.confirmDel){ state.confirmDel=true; renderMain(); } else { const did=d.id; state.days=state.days.filter(x=>x.id!==did); dirty.delete(did); queue('del:'+did); state.current=lastDayId(); state.confirmDel=false; renderAll(); toast('Día borrado.'); } }
+  else if(a==='cancel-del'){ state.confirmDel=false; renderMain(); }
+  else if(a==='pdf') descargarPDF(false);
+  else if(a==='pdf-share') descargarPDF(true);
+  else if(a==='export') exportJSON();
+  else if(a==='import') $('#file-import').click();
+  else if(a==='demo') enterDemo();
+  else if(a==='exit-demo') exitDemo();
+});
+function addToma(){
+  const d=curDay(); if(!d) return; const l=d.tomas[d.tomas.length-1];
+  const nx=s=>{ const m=String(s||'').match(/^(.*?)(\d+)$/); return m?m[1]+String(+m[2]+1).padStart(m[2].length,'0'):''; };
+  const t={id:uid(),camara:l?l.camara:'',clip:l?nx(l.clip):'',sonido:l?nx(l.sonido):'',escena:l?l.escena:'',plano:l?l.plano:'',toma:l?String((parseInt(l.toma,10)||0)+1):'1',accion:l?l.accion:'',nota:'',estado:''};
+  d.tomas.push(t); touchDay(); renderMain();
+  const f=document.getElementById('t-accion-'+t.id); if(f){ f.focus(); f.scrollIntoView({block:'center'}); }
+}
+$('#file-import').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f) return; const rd=new FileReader();
+  rd.onload=()=>{ try{ const j=JSON.parse(rd.result); if(!j||!Array.isArray(j.days)) throw 0;
+      if(state.demo) exitDemo();
+      if(j.project&&(j.project.updatedAt||0)>=(state.project.updatedAt||0)){ state.project={...emptyProject(),...j.project}; queue('p'); }
+      j.days.map(fixDay).forEach(x=>{ const i=state.days.findIndex(y=>y.id===x.id); if(i<0){ state.days.push(x); queue(x.id); } else if((x.updatedAt||0)>(state.days[i].updatedAt||0)){ state.days[i]=x; queue(x.id); } });
+      if(!curDay()) state.current=lastDayId(); renderAll(); toast('Copia cargada.');
+    }catch(err){ toast('Ese archivo no es una copia válida.'); } e.target.value=''; };
+  rd.readAsText(f);
+});
+
+/* ---------- ejemplo ---------- */
+function enterDemo(){
+  realBackup={project:state.project,days:state.days,current:state.current,tab:state.tab};
+  let snd=0; const T=(escena,plano,toma,camara,clip,_d,estado,nota,accion)=>({id:uid(),camara,clip,sonido:'T'+String(++snd).padStart(3,'0'),escena,plano,toma:String(toma),accion:accion||'',estado,nota:estado==='Buena'?nota:[estado,nota].filter(Boolean).join('. ')});
+  const E=(num,desc,pt,ph,estado,tiempo,notas)=>({id:uid(),num,desc,pagTotal:pt,pagHoy:ph,estado,tiempo,notas});
+  const base={primerPlano:'',almuerzoIni:'',almuerzoFin:'',ultimoPlano:'',clima:'',continuidad:'',pendientes:'',incidencias:'',wrap:'',updatedAt:1};
+  const d1=fixDay({...base,id:'demo1',num:'1',fecha:'2026-11-10',llamado:'07:00',primerPlano:'08:10',almuerzoIni:'13:00',almuerzoFin:'14:00',ultimoPlano:'18:05',wrap:'18:30',locacion:'Casa de la abuela',clima:'Soleado',
+    escenas:[E('1','INT. COCINA - DÍA','1 2/8','1 2/8','Completa','1:10',''),E('2','INT. SALA - DÍA','2','1','Parcial','','Falta contraplano de Marta')],
+    tomas:[T('1','1A',1,'A','A001','0:42','NG','Se oye la nevera'),T('1','1A',2,'A','A001','0:45','Buena','Taza en la mano derecha'),T('1','1B',1,'A','A002','0:38','Buena',''),T('1','1B',2,'A','A002','0:36','Aceptable',''),
+      T('2','2A',1,'A','A003','1:05','Falsa partida',''),T('2','2A',2,'A','A003','1:12','Buena','Marta entra por la izquierda')],
+    continuidad:'Escena 1: la taza siempre en la mano derecha. Camisa de Marta con dos botones abiertos.',pendientes:'2: contraplano de Marta (2B).',incidencias:'Retraso de 20 min por ruido de obra vecina.'});
+  const d2=fixDay({...base,id:'demo2',num:'2',fecha:'2026-11-11',llamado:'07:30',primerPlano:'08:40',almuerzoIni:'13:15',almuerzoFin:'14:05',ultimoPlano:'19:10',wrap:'19:30',locacion:'Casa de la abuela',clima:'Nublado',
+    escenas:[E('2','INT. SALA - DÍA','2','1','Completa','1:30','Recupera 2B'),E('3','INT. PASILLO - NOCHE','1 4/8','1 4/8','Completa','1:25','')],
+    tomas:[T('2','2B',1,'A','A010','','NG','Foco blando','Contraplano de Marta, responde a Luis'),T('2','2B',2,'A','A011','','Buena','Marta mira a cámara en “vacía”','Contraplano de Marta, responde a Luis'),T('3','3A',1,'A','A012','','Aceptable','','Marta cruza el pasillo con la vela'),T('3','3A',2,'A','A013','','Buena','','Marta cruza el pasillo con la vela'),
+      T('3','3B',1,'B','B004','','Incompleta','Corte por luz','Detalle: mano en el pomo'),T('3','3B',2,'B','B005','','Buena','','Detalle: mano en el pomo')],
+    continuidad:'Escena 3: puerta del fondo cerrada en todos los planos.',pendientes:'',incidencias:''});
+  state.project={titulo:'EJEMPLO · Cortometraje «La casa vacía»',productora:'Productora de ejemplo',director:'Nombre del director',productor:'Nombre del productor',script:'Nombre del script',dop:'Nombre del DP',totalPaginas:'12',totalDias:'5',updatedAt:1};
+  state.days=[d1,d2]; state.current='demo2'; state.tab='reporte'; state.demo=true; renderAll(); nagShown=null; renderNag();
+}
+function exitDemo(){ if(!realBackup) return; Object.assign(state,{project:realBackup.project,days:realBackup.days,current:realBackup.current,tab:realBackup.tab,demo:false}); realBackup=null; renderAll(); setStatus('local'); nagShown=null; renderNag(); }
+
+/* ---------- salida: PDF y copia ---------- */
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.hidden=false; clearTimeout(toast.t); toast.t=setTimeout(()=>{t.hidden=true;},3800); }
+const slug=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40);
+function saveFile(filename,blob){
+  const url=URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+  toast('Descargado en la carpeta Descargas: '+filename);
+}
+function canShareFiles(){ try{ return !!(navigator.canShare&&navigator.canShare({files:[new File(['x'],'x.pdf',{type:'application/pdf'})]})); }catch(e){ return false; } }
+async function shareFile(filename,blob){
+  const f=new File([blob],filename,{type:blob.type});
+  try{ await navigator.share({files:[f],title:filename}); }
+  catch(e){ if(e&&e.name==='AbortError') return; saveFile(filename,blob); }
+}
+async function descargarPDF(share){
+  const d=curDay(); if(!d) return;
+  if(!window.PDFLib){ toast('No cargó el generador de PDF. Cierra la app y ábrela de nuevo.'); return; }
+  let blob; try{ blob=await makePDF(buildReport(d)); }catch(e){ console.error(e); toast('No se pudo generar el PDF.'); return; }
+  const name=`Reporte-script_${slug(state.project.titulo)||'proyecto'}_Dia${pad2(d.num)}_${d.fecha}.pdf`;
+  if(share&&canShareFiles()) shareFile(name,blob); else saveFile(name,blob);
+}
+function exportJSON(){
+  if(state.demo){ toast('Estás viendo el ejemplo. Sal del ejemplo para descargar tu copia.'); return; }
+  saveFile(`copia-script_${todayISO()}.json`,new Blob([JSON.stringify({project:state.project,days:state.days},null,1)],{type:'application/json'}));
+  try{ localStorage.setItem(LSB,String(Date.now())); }catch(e){}
+  nagShown=null; renderNag(); if(state.tab==='proyecto') renderMain();
+}
+
+/* Helvetica del PDF solo admite el juego de caracteres occidental (WinAnsi) */
+const WIN='€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ';
+const clean=s=>String(s==null?'':s).replace(/\t/g,' ').replace(/\r/g,'').replace(/[^\n\x20-\x7e\xa0-\xff]/gu,ch=>WIN.includes(ch)?ch:'?');
+
+async function makePDF(r){
+  const {p,d}=r, {PDFDocument,StandardFonts,rgb}=window.PDFLib;
+  const doc=await PDFDocument.create();
+  doc.setTitle(clean(`Reporte de script - ${p.titulo||'Proyecto'} - Día ${d.num}`)); doc.setCreator('Reporte de Script');
+  const F=await doc.embedFont(StandardFonts.Helvetica), FB=await doc.embedFont(StandardFonts.HelveticaBold);
+  const W=595.28, H=841.89, M=36, BOT=M+20, TW=W-2*M;
+  const C=(a,b,c)=>rgb(a/255,b/255,c/255);
+  const INK=C(20,23,31), MUTED=C(96,104,118), ACC=C(43,79,216), LINE=C(201,206,216), HEAD=C(28,32,42), FOOT=C(238,240,244), WHITE=rgb(1,1,1);
+  let page, y;
+  const newPage=()=>{ page=doc.addPage([W,H]); y=H-M; };
+  const txt=(s,x,yy,o={})=>{ const f=o.bold?FB:F, size=o.size||9; s=clean(s); if(!s) return; let xx=x;
+    if(o.align==='right') xx=x-f.widthOfTextAtSize(s,size); else if(o.align==='center') xx=x-f.widthOfTextAtSize(s,size)/2;
+    page.drawText(s,{x:xx,y:yy,size,font:f,color:o.color||INK}); };
+  const wrap=(s,f,size,w)=>{ const out=[];
+    for(const para of clean(s).split('\n')){ let line='';
+      for(const word of para.split(/ +/)){ if(!word) continue; const t=line?line+' '+word:word;
+        if(f.widthOfTextAtSize(t,size)<=w){ line=t; continue; }
+        if(line) out.push(line);
+        let wd=word; while(wd.length>1&&f.widthOfTextAtSize(wd,size)>w){ let i=wd.length-1; while(i>1&&f.widthOfTextAtSize(wd.slice(0,i),size)>w) i--; out.push(wd.slice(0,i)); wd=wd.slice(i); }
+        line=wd; }
+      out.push(line); }
+    return out.length?out:['']; };
+
+  newPage();
+  /* encabezado */
+  txt('REPORTE DIARIO DE SCRIPT',M,y-8,{bold:true,size:8,color:ACC});
+  txt(`DÍA ${d.num}${p.totalDias?` / ${p.totalDias}`:''}`,W-M,y-30,{bold:true,size:18,align:'right'});
+  txt(r.fechaLarga,W-M,y-44,{size:9,color:MUTED,align:'right'});
+  const tl=wrap(p.titulo||'Proyecto sin título',FB,19,TW-170); let ty=y-30;
+  tl.forEach((l,i)=>{ txt(l,M,ty,{bold:true,size:19}); if(i<tl.length-1) ty-=22; });
+  if(p.productora){ ty-=15; txt(p.productora,M,ty,{size:9,color:MUTED}); }
+  y=Math.min(ty-10,y-54); page.drawLine({start:{x:M,y},end:{x:W-M,y},thickness:1.4,color:INK}); y-=16;
+  const info=[['Director',p.director],['Productor',p.productor],['Script',p.script],['Dir. fotografía',p.dop],['Locación',d.locacion]];
+  const cw=TW/2;
+  for(let i=0;i<info.length;i+=2){ let h=1;
+    [info[i],info[i+1]].forEach((it,j)=>{ if(!it) return; const x=M+j*cw; txt(it[0],x,y,{bold:true,size:8.5,color:MUTED});
+      const ls=wrap(it[1]||'—',F,8.5,cw-92); ls.forEach((l,k)=>txt(l,x+82,y-k*11,{size:8.5})); h=Math.max(h,ls.length); });
+    y-=h*11+4; }
+  y-=10;
+
+  const sect=t=>{ if(y<BOT+70) newPage(); txt(t.toUpperCase(),M,y,{bold:true,size:8,color:ACC}); y-=5;
+    page.drawLine({start:{x:M,y},end:{x:W-M,y},thickness:.6,color:LINE}); y-=8; };
+
+  function table(cols,rows){
+    const fixed=cols.reduce((a,c)=>a+(c.w||0),0), flex=cols.reduce((a,c)=>a+(c.w?0:(c.f||1)),0);
+    const ws=cols.map(c=>c.w||((TW-fixed)*(c.f||1)/flex));
+    const size=8, lh=10, pad=4;
+    const head=()=>{ const hh=17; page.drawRectangle({x:M,y:y-hh,width:TW,height:hh,color:HEAD}); let x=M;
+      cols.forEach((c,i)=>{ if(c.align==='center') txt(c.t,x+ws[i]/2,y-11.5,{bold:true,size:7.5,color:WHITE,align:'center'}); else txt(c.t,x+pad,y-11.5,{bold:true,size:7.5,color:WHITE}); x+=ws[i]; });
+      y-=hh; };
+    if(y<BOT+50) newPage(); head();
+    rows.forEach(row=>{
+      const f=row.bold?FB:F;
+      const cells=row.full?[wrap(row.cells[0],f,size,TW-pad*2)]:row.cells.map((v,i)=>wrap(v==null?'':String(v),f,size,ws[i]-pad*2));
+      const rh=Math.max(...cells.map(c=>c.length))*lh+pad*2-2;
+      if(y-rh<BOT){ newPage(); head(); }
+      if(row.fill) page.drawRectangle({x:M,y:y-rh,width:TW,height:rh,color:row.fill});
+      if(row.full){ cells[0].forEach((l,k)=>txt(l,M+pad,y-pad-7-k*lh,{size,bold:row.bold,color:MUTED}));
+        page.drawRectangle({x:M,y:y-rh,width:TW,height:rh,borderColor:LINE,borderWidth:.5}); }
+      else { let x=M;
+        cols.forEach((c,i)=>{ cells[i].forEach((l,k)=>{ const by=y-pad-7-k*lh;
+            if(c.align==='center') txt(l,x+ws[i]/2,by,{size,bold:row.bold,align:'center'}); else txt(l,x+pad,by,{size,bold:row.bold}); });
+          if(row.circle===i&&cells[i][0]){ const tw=f.widthOfTextAtSize(cells[i][0],size);
+            page.drawEllipse({x:x+ws[i]/2,y:y-pad-7+2.8,xScale:Math.max(tw/2+4.5,7.5),yScale:6.6,borderColor:INK,borderWidth:.9}); }
+          page.drawRectangle({x,y:y-rh,width:ws[i],height:rh,borderColor:LINE,borderWidth:.5}); x+=ws[i]; }); }
+      y-=rh; });
+    y-=14;
+  }
+  const cen={align:'center'};
+
+  sect('Escenas');
+  table([{t:'Esc.',w:30,...cen},{t:'Descripción',f:2},{t:'Págs.',w:38,...cen},{t:'Hoy',w:38,...cen},{t:'Estado',w:56},{t:'Plan.',w:30,...cen},{t:'Tomas',w:32,...cen},{t:'Buen.',w:32,...cen},{t:'Min.',w:32,...cen},{t:'Notas',f:1.6}],
+    (r.rows.length?r.rows.map(e=>({cells:[e.num,e.desc,fmtPages(e.pagTotal),fmtPages(e.pagHoy),e.estado,e.setups,e.tomas,e.buenas,e.tiempo?fmtDur(e.tiempo):'',e.notas]})):[{full:true,cells:['Sin escenas registradas']}])
+    .concat([{bold:true,fill:FOOT,cells:['','Totales del día',fmtPages(r.tot.pagProg),fmtPages(r.tot.pagHoy),'',r.tot.setups,r.tot.tomas,r.tot.buenas,fmtDur(r.tot.pantalla),'']}]));
+  y+=4;
+  wrap(`Acumulado hasta hoy: ${fmtPages(r.acum.pag)} págs.${p.totalPaginas?` de ${p.totalPaginas}`:''}${r.acum.pct!=null?` (${r.acum.pct}%)`:''}  ·  ${r.acum.dias} ${r.acum.dias===1?'día filmado':'días filmados'}`,F,8.5,TW)
+    .forEach(l=>{ txt(l,M,y,{size:8.5}); y-=11; });
+  y-=12;
+
+  sect('Registro de tomas');
+  table([{t:'Cám.',w:30,...cen},{t:'Clip',w:50,...cen},{t:'Sonido',w:50,...cen},{t:'Esc.',w:30,...cen},{t:'Plano',w:36,...cen},{t:'Toma',w:34,...cen},{t:'Acción',f:1},{t:'Observaciones',f:1}],
+    d.tomas.length?d.tomas.map(t=>{ const b=t.estado==='Buena'; return {bold:b,circle:b?5:undefined,cells:[t.camara,t.clip,t.sonido||'',t.escena,t.plano,t.toma,t.accion||'',t.nota]}; }):[{full:true,cells:['Sin tomas registradas']}]);
+
+  const para=(t,s)=>{ sect(t); wrap(s||'—',F,9,TW).forEach(l=>{ if(y<BOT){ newPage(); } txt(l,M,y,{size:9}); y-=11.5; }); y-=12; };
+  para('Continuidad y notas para edición',d.continuidad);
+  para('Planos pendientes',d.pendientes);
+  para('Incidencias',d.incidencias);
+
+  if(y<BOT+40) newPage();
+  y-=24; page.drawLine({start:{x:M,y},end:{x:M+200,y},thickness:.6,color:INK});
+  txt(`Script${p.script?`: ${p.script}`:''}`,M,y-12,{size:8.5,color:MUTED});
+
+  const pages=doc.getPages(), n=pages.length;
+  pages.forEach((pg,i)=>{ page=pg;
+    txt(`${p.titulo||'Proyecto'} · Día ${d.num} · ${fechaCorta(d.fecha)}`,M,20,{size:7.5,color:MUTED});
+    txt(`Página ${i+1} de ${n}`,W-M,20,{size:7.5,color:MUTED,align:'right'}); });
+  return new Blob([await doc.save()],{type:'application/pdf'});
+}
+
+/* ---------- arranque ---------- */
+lsLoad(); state.current=lastDayId(); renderAll(); initApp();
+})();
+</script>
+
+</body>
+</html>
