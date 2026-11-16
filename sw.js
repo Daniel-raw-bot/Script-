@@ -1,6 +1,6 @@
 // Guarda la app en el teléfono para que abra sin conexión.
 // Al publicar una versión nueva, cambia el número de VERSION.
-const VERSION = 'script-v2';
+const VERSION = 'script-v3';
 const FILES = ['./', './index.html', './pdf-lib.min.js', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
