@@ -104,7 +104,7 @@ input.toma{font-family:var(--f-mono)}
   .cap.hd{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
   .row .wide{grid-column:auto}
   .x .xt{display:none} .x .xi{display:inline} .x{width:32px;padding:0}
-  .g-t{grid-template-columns:52px 88px 88px 58px 64px 58px minmax(0,1fr) minmax(0,1fr) 112px 32px}
+  .g-t{grid-template-columns:52px 88px 104px 88px 58px 64px 58px minmax(0,1fr) minmax(0,1fr) 112px 32px}
   .g-e{grid-template-columns:64px minmax(0,1.3fr) 82px 82px 118px 72px minmax(0,1fr) 32px}
   .ring{width:100%}
 }
@@ -114,7 +114,7 @@ input.toma{font-family:var(--f-mono)}
 
 /* hoja del reporte */
 .sheetbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:8px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-.paper{background:var(--paper);color:var(--paper-ink);border:1px solid var(--paper-line);border-radius:4px;padding:28px 30px;width:100%;max-width:860px;margin:0 auto;font-size:12.5px;line-height:1.45;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.paper{background:var(--paper);color:var(--paper-ink);border:1px solid var(--paper-line);border-radius:4px;padding:28px 30px;width:100%;max-width:1080px;margin:0 auto;font-size:12.5px;line-height:1.45;box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .paper h1{font-size:24px;line-height:1.15;color:var(--paper-ink)}
 .paper .ph{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;border-bottom:2px solid var(--paper-ink);padding-bottom:12px;margin-bottom:12px}
 .paper .kick{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--paper-accent);font-weight:600;margin-bottom:4px}
@@ -134,6 +134,7 @@ input.toma{font-family:var(--f-mono)}
 .paper td.n,.paper th.n{text-align:center;font-family:var(--f-mono);white-space:nowrap}
 .paper tfoot td{font-weight:600;background:#eef0f4}
 .paper tr.good td{font-weight:600}
+.paper td.mk,.paper tr.good td.mk{color:var(--paper-muted);font-weight:400;font-size:11.5px;white-space:nowrap}
 .paper .circ{display:inline-block;min-width:22px;border:1.5px solid var(--paper-ink);border-radius:50%;text-align:center;line-height:18px}
 .paper p.txt{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
 .paper .sign{margin-top:26px;display:flex;gap:40px;flex-wrap:wrap;color:var(--paper-muted)}
@@ -335,10 +336,11 @@ function viewTomas(d){
   <div class="bar"><button class="btn primary" data-act="add-toma">+ Nueva toma</button><span class="hint">Copia cámara, escena y plano de la toma anterior, suma uno a la toma y avanza el número de clip y de sonido.</span></div>
   ${dlEsc(d)}
   <div class="list">
-    ${d.tomas.length?`<div class="head g-t"><span>Cám.</span><span>Clip</span><span>Sonido</span><span>Esc.</span><span>Plano</span><span>Toma</span><span>Acción</span><span>Observaciones</span><span>Marca</span><span></span></div>`:''}
+    ${d.tomas.length?`<div class="head g-t"><span>Cám.</span><span>Clip</span><span>Timecode</span><span>Sonido</span><span>Esc.</span><span>Plano</span><span>Toma</span><span>Acción</span><span>Observaciones</span><span>Marca</span><span></span></div>`:''}
     ${d.tomas.map(t=>`<div class="row g-t" data-row="${t.id}">
       ${F('Cámara','t','camara',t.camara,{id:t.id,cap:'hd',attrs:'class="mono"',ph:'A'})}
       ${F('Clip','t','clip',t.clip,{id:t.id,cap:'hd',attrs:'class="mono"',ph:'A001'})}
+      ${F('Timecode','t','timecode',t.timecode,{id:t.id,cap:'hd',attrs:'class="mono" inputmode="numeric"',ph:'00:00:00:00'})}
       ${F('Sonido','t','sonido',t.sonido,{id:t.id,cap:'hd',attrs:'class="mono"',ph:'T001'})}
       <label class="cell"><span class="cap hd">Escena</span><input id="t-escena-${t.id}" class="mono" list="dl-esc" data-sc="t" data-k="escena" data-id="${t.id}" value="${esc(t.escena)}" autocomplete="off"></label>
       ${F('Plano','t','plano',t.plano,{id:t.id,cap:'hd',attrs:'class="mono"',ph:'2A'})}
@@ -359,7 +361,7 @@ function viewReporte(d){
 function reportHTML(r){
   const {p,d}=r, v=x=>esc(x)||'—';
   const rowE=r.rows.map(e=>`<tr><td class="n">${esc(e.num)}</td><td>${esc(e.desc)}</td><td class="n">${fmtPages(e.pagTotal)}</td><td class="n">${fmtPages(e.pagHoy)}</td><td>${esc(e.estado)}</td><td class="n">${e.setups}</td><td class="n">${e.tomas}</td><td class="n">${e.buenas}</td><td class="n">${e.tiempo?fmtDur(e.tiempo):''}</td><td>${esc(e.notas)}</td></tr>`).join('');
-  const rowT=d.tomas.map(t=>`<tr class="${t.estado==='Buena'?'good':''}"><td class="n">${esc(t.camara)}</td><td class="n">${esc(t.clip)}</td><td class="n">${esc(t.sonido)}</td><td class="n">${esc(t.escena)}</td><td class="n">${esc(t.plano)}</td><td class="n">${t.estado==='Buena'?`<span class="circ">${esc(t.toma)}</span>`:esc(t.toma)}</td><td>${esc(t.accion)}</td><td>${esc(t.nota)}</td></tr>`).join('');
+  const rowT=d.tomas.map(t=>`<tr class="${t.estado==='Buena'?'good':''}"><td class="n">${esc(t.camara)}</td><td class="n">${esc(t.clip)}</td><td class="n">${esc(t.timecode)}</td><td class="n">${esc(t.sonido)}</td><td class="n">${esc(t.escena)}</td><td class="n">${esc(t.plano)}</td><td class="n">${t.estado==='Buena'?`<span class="circ">${esc(t.toma)}</span>`:esc(t.toma)}</td><td>${esc(t.accion)}</td><td>${esc(t.nota)}</td><td class="mk">${esc(t.estado)}</td></tr>`).join('');
   const almu=d.almuerzoIni||d.almuerzoFin?`${d.almuerzoIni||'—'} – ${d.almuerzoFin||'—'}`:'—';
   return `<article class="paper" id="paper">
   <header class="ph"><div><div class="kick">Reporte diario de script</div><h1>${esc(p.titulo||'Proyecto sin título')}</h1>${p.productora?`<div>${esc(p.productora)}</div>`:''}</div>
@@ -370,8 +372,8 @@ function reportHTML(r){
     <tbody>${rowE||'<tr><td colspan="10">Sin escenas registradas</td></tr>'}</tbody>
     <tfoot><tr><td colspan="2">Totales del día</td><td class="n">${fmtPages(r.tot.pagProg)}</td><td class="n">${fmtPages(r.tot.pagHoy)}</td><td></td><td class="n">${r.tot.setups}</td><td class="n">${r.tot.tomas}</td><td class="n">${r.tot.buenas}</td><td class="n">${fmtDur(r.tot.pantalla)}</td><td></td></tr></tfoot></table></div>
   <p style="margin:8px 0 0">Acumulado hasta hoy: <b>${fmtPages(r.acum.pag)}</b> págs.${p.totalPaginas?` de ${esc(p.totalPaginas)}`:''}${r.acum.pct!=null?` (${r.acum.pct}%)`:''} · ${r.acum.dias} ${r.acum.dias===1?'día filmado':'días filmados'}</p>
-  <h3>Registro de tomas</h3><div class="tw"><table><thead><tr><th class="n">Cám.</th><th class="n">Clip</th><th class="n">Sonido</th><th class="n">Esc.</th><th class="n">Plano</th><th class="n">Toma</th><th>Acción</th><th>Observaciones</th></tr></thead>
-    <tbody>${rowT||'<tr><td colspan="8">Sin tomas registradas</td></tr>'}</tbody></table></div>
+  <h3>Registro de tomas</h3><div class="tw"><table><thead><tr><th class="n">Cám.</th><th class="n">Clip</th><th class="n">Timecode</th><th class="n">Sonido</th><th class="n">Esc.</th><th class="n">Plano</th><th class="n">Toma</th><th>Acción</th><th>Observaciones</th><th>Marca</th></tr></thead>
+    <tbody>${rowT||'<tr><td colspan="10">Sin tomas registradas</td></tr>'}</tbody></table></div>
   <h3>Continuidad y notas para edición</h3><p class="txt">${v(d.continuidad)}</p>
   <h3>Planos pendientes</h3><p class="txt">${v(d.pendientes)}</p>
   <h3>Incidencias</h3><p class="txt">${v(d.incidencias)}</p>
@@ -440,7 +442,7 @@ document.addEventListener('click',ev=>{
 function addToma(){
   const d=curDay(); if(!d) return; const l=d.tomas[d.tomas.length-1];
   const nx=s=>{ const m=String(s||'').match(/^(.*?)(\d+)$/); return m?m[1]+String(+m[2]+1).padStart(m[2].length,'0'):''; };
-  const t={id:uid(),camara:l?l.camara:'',clip:l?nx(l.clip):'',sonido:l?nx(l.sonido):'',escena:l?l.escena:'',plano:l?l.plano:'',toma:l?String((parseInt(l.toma,10)||0)+1):'1',accion:l?l.accion:'',nota:'',estado:''};
+  const t={id:uid(),camara:l?l.camara:'',clip:l?nx(l.clip):'',timecode:'',sonido:l?nx(l.sonido):'',escena:l?l.escena:'',plano:l?l.plano:'',toma:l?String((parseInt(l.toma,10)||0)+1):'1',accion:l?l.accion:'',nota:'',estado:''};
   d.tomas.push(t); touchDay(); renderMain();
   const f=document.getElementById('t-accion-'+t.id); if(f){ f.focus(); f.scrollIntoView({block:'center'}); }
 }
@@ -458,7 +460,8 @@ $('#file-import').addEventListener('change',e=>{
 /* ---------- ejemplo ---------- */
 function enterDemo(){
   realBackup={project:state.project,days:state.days,current:state.current,tab:state.tab};
-  let snd=0; const T=(escena,plano,toma,camara,clip,_d,estado,nota,accion)=>({id:uid(),camara,clip,sonido:'T'+String(++snd).padStart(3,'0'),escena,plano,toma:String(toma),accion:accion||'',estado,nota:estado==='Buena'?nota:[estado,nota].filter(Boolean).join('. ')});
+  let snd=0, tc=8*3600+14*60; const tcf=()=>{ tc+=83+snd*11; const f=(snd*7)%24; return [Math.floor(tc/3600),Math.floor(tc/60)%60,tc%60,f].map(pad2).join(':'); };
+  const T=(escena,plano,toma,camara,clip,_d,estado,nota,accion)=>({id:uid(),camara,clip,timecode:tcf(),sonido:'T'+String(++snd).padStart(3,'0'),escena,plano,toma:String(toma),accion:accion||'',estado,nota});
   const E=(num,desc,pt,ph,estado,tiempo,notas)=>({id:uid(),num,desc,pagTotal:pt,pagHoy:ph,estado,tiempo,notas});
   const base={primerPlano:'',almuerzoIni:'',almuerzoFin:'',ultimoPlano:'',clima:'',continuidad:'',pendientes:'',incidencias:'',wrap:'',updatedAt:1};
   const d1=fixDay({...base,id:'demo1',num:'1',fecha:'2026-11-10',llamado:'07:00',primerPlano:'08:10',almuerzoIni:'13:00',almuerzoFin:'14:00',ultimoPlano:'18:05',wrap:'18:30',locacion:'Casa de la abuela',clima:'Soleado',
@@ -514,7 +517,7 @@ async function makePDF(r){
   const doc=await PDFDocument.create();
   doc.setTitle(clean(`Reporte de script - ${p.titulo||'Proyecto'} - Día ${d.num}`)); doc.setCreator('Reporte de Script');
   const F=await doc.embedFont(StandardFonts.Helvetica), FB=await doc.embedFont(StandardFonts.HelveticaBold);
-  const W=595.28, H=841.89, M=36, BOT=M+20, TW=W-2*M;
+  const W=841.89, H=595.28, M=36, BOT=M+20, TW=W-2*M;
   const C=(a,b,c)=>rgb(a/255,b/255,c/255);
   const INK=C(20,23,31), MUTED=C(96,104,118), ACC=C(43,79,216), LINE=C(201,206,216), HEAD=C(28,32,42), FOOT=C(238,240,244), WHITE=rgb(1,1,1);
   let page, y;
@@ -542,9 +545,9 @@ async function makePDF(r){
   if(p.productora){ ty-=15; txt(p.productora,M,ty,{size:9,color:MUTED}); }
   y=Math.min(ty-10,y-54); page.drawLine({start:{x:M,y},end:{x:W-M,y},thickness:1.4,color:INK}); y-=16;
   const info=[['Director',p.director],['Productor',p.productor],['Script',p.script],['Dir. fotografía',p.dop],['Locación',d.locacion]];
-  const cw=TW/2;
-  for(let i=0;i<info.length;i+=2){ let h=1;
-    [info[i],info[i+1]].forEach((it,j)=>{ if(!it) return; const x=M+j*cw; txt(it[0],x,y,{bold:true,size:8.5,color:MUTED});
+  const cw=TW/3;
+  for(let i=0;i<info.length;i+=3){ let h=1;
+    [info[i],info[i+1],info[i+2]].forEach((it,j)=>{ if(!it) return; const x=M+j*cw; txt(it[0],x,y,{bold:true,size:8.5,color:MUTED});
       const ls=wrap(it[1]||'—',F,8.5,cw-92); ls.forEach((l,k)=>txt(l,x+82,y-k*11,{size:8.5})); h=Math.max(h,ls.length); });
     y-=h*11+4; }
   y-=10;
@@ -562,7 +565,7 @@ async function makePDF(r){
     if(y<BOT+50) newPage(); head();
     rows.forEach(row=>{
       const f=row.bold?FB:F;
-      const cells=row.full?[wrap(row.cells[0],f,size,TW-pad*2)]:row.cells.map((v,i)=>wrap(v==null?'':String(v),f,size,ws[i]-pad*2));
+      const cells=row.full?[wrap(row.cells[0],f,size,TW-pad*2)]:row.cells.map((v,i)=>wrap(v==null?'':String(v),cols[i].muted?F:f,size,ws[i]-pad*2));
       const rh=Math.max(...cells.map(c=>c.length))*lh+pad*2-2;
       if(y-rh<BOT){ newPage(); head(); }
       if(row.fill) page.drawRectangle({x:M,y:y-rh,width:TW,height:rh,color:row.fill});
@@ -570,7 +573,7 @@ async function makePDF(r){
         page.drawRectangle({x:M,y:y-rh,width:TW,height:rh,borderColor:LINE,borderWidth:.5}); }
       else { let x=M;
         cols.forEach((c,i)=>{ cells[i].forEach((l,k)=>{ const by=y-pad-7-k*lh;
-            if(c.align==='center') txt(l,x+ws[i]/2,by,{size,bold:row.bold,align:'center'}); else txt(l,x+pad,by,{size,bold:row.bold}); });
+            const st={size,bold:row.bold&&!c.muted,color:c.muted?MUTED:undefined}; if(c.align==='center') txt(l,x+ws[i]/2,by,{...st,align:'center'}); else txt(l,x+pad,by,st); });
           if(row.circle===i&&cells[i][0]){ const tw=f.widthOfTextAtSize(cells[i][0],size);
             page.drawEllipse({x:x+ws[i]/2,y:y-pad-7+2.8,xScale:Math.max(tw/2+4.5,7.5),yScale:6.6,borderColor:INK,borderWidth:.9}); }
           page.drawRectangle({x,y:y-rh,width:ws[i],height:rh,borderColor:LINE,borderWidth:.5}); x+=ws[i]; }); }
@@ -589,8 +592,8 @@ async function makePDF(r){
   y-=12;
 
   sect('Registro de tomas');
-  table([{t:'Cám.',w:30,...cen},{t:'Clip',w:50,...cen},{t:'Sonido',w:50,...cen},{t:'Esc.',w:30,...cen},{t:'Plano',w:36,...cen},{t:'Toma',w:34,...cen},{t:'Acción',f:1},{t:'Observaciones',f:1}],
-    d.tomas.length?d.tomas.map(t=>{ const b=t.estado==='Buena'; return {bold:b,circle:b?5:undefined,cells:[t.camara,t.clip,t.sonido||'',t.escena,t.plano,t.toma,t.accion||'',t.nota]}; }):[{full:true,cells:['Sin tomas registradas']}]);
+  table([{t:'Cám.',w:30,...cen},{t:'Clip',w:52,...cen},{t:'Timecode',w:70,...cen},{t:'Sonido',w:52,...cen},{t:'Esc.',w:30,...cen},{t:'Plano',w:36,...cen},{t:'Toma',w:34,...cen},{t:'Acción',f:1.2},{t:'Observaciones',f:1},{t:'Marca',w:66,muted:true}],
+    d.tomas.length?d.tomas.map(t=>{ const b=t.estado==='Buena'; return {bold:b,circle:b?6:undefined,cells:[t.camara,t.clip,t.timecode||'',t.sonido||'',t.escena,t.plano,t.toma,t.accion||'',t.nota,t.estado||'']}; }):[{full:true,cells:['Sin tomas registradas']}]);
 
   const para=(t,s)=>{ sect(t); wrap(s||'—',F,9,TW).forEach(l=>{ if(y<BOT){ newPage(); } txt(l,M,y,{size:9}); y-=11.5; }); y-=12; };
   para('Continuidad y notas para edición',d.continuidad);
